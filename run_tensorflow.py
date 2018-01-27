@@ -7,14 +7,15 @@ import pandas as pd
 class ModelNFMD:
 
     def __init__(self):
-        print('Model initing...')
-        self.modelFile = './model_saves/Tensorflow/TenLogisticReg.ckpt'
-        
+        print('Model initing...') 
         self.fileID = tf.placeholder(tf.string, [None, 1])
         self.customerID = tf.placeholder(tf.string, [None, 1])
         self.queryTS = tf.placeholder(tf.float32, [None, 1])
         self.productID = tf.placeholder(tf.string, [None, 1])
         self.y = tf.placeholder(tf.float32, [None, 1])
+        
+        self.W = tf.Variable(tf.random_normal([1, 1]))
+        self.b = tf.Variable(tf.zeros([1, 1]) + 1)
         print('Variable defined.')
    
 
@@ -36,46 +37,55 @@ class ModelNFMD:
                 break
         _train = pd.read_csv('./data/training-set.csv', names=['FileID', 'VirusRate'], dtype={'FileID': str})
         self.train_data = pd.merge(_data, _train, how='left', on='FileID').values
-
-    def train(self, epochs=100):
-        print('Training...')
-        train_fileID = self.train_data[:, 0:1]
-        train_customerID = self.train_data[:, 1:2]
-        train_queryTS = self.train_data[:, 2:3]
-        train_productID = self.train_data[:, 3:4]
+        self.train_fileID = self.train_data[:, 0:1]
+        self.train_customerID = self.train_data[:, 1:2]
+        self.train_queryTS = self.train_data[:, 2:3]
+        self.train_productID = self.train_data[:, 3:4]
         print('Seperated column from train data.')
-        train_X = self.train_data[:, :1]
-        train_y = self.train_data[:, -1:]
-        lenSymbol = len(train_X[0])
-        lenData = len(train_X)
-        print('Size of train_X: {}x{}'.format(lenData, lenSymbol))
-        print('Size of train_y: {}x{}'.format(len(train_y), len(train_y[0])))
+        self.train_X = self.train_data[:, :1]
+        self.train_y = self.train_data[:, -1:]
+        print('Size of train_X: {}x{}'.format(len(self.train_X), len(self.train_X[0])))
+        print('Size of train_y: {}x{}'.format(len(self.train_y), len(self.train_y[0])))
 
-
-        W = tf.Variable(tf.random_normal([1, 1]))
-        b = tf.Variable(tf.zeros([1, 1]) + 1)
+    def train(self, sess, epochs=100, rate=0.05):
+        print('Training...')
         #z = tf.matmul(X, W) + b
         #o = tf.sigmoid(z)
         #cross_entropy = tf.reduce_mean(y * -tf.log(o) + (1 - y) * -tf.log(1 - o))
-        cross_entropy = tf.reduce_mean(tf.square(W + b - self.y))
-        train = tf.train.GradientDescentOptimizer(0.05).minimize(cross_entropy)
+        hypo = self.W + self.b
+        cross_entropy = tf.reduce_mean(tf.square(hypo - self.y))
+        optimizer = tf.train.GradientDescentOptimizer(rate)
+        train = optimizer.minimize(cross_entropy)
 
         optimal_W = None
         optimal_b = None
-        with tf.Session() as sess:
-            init = tf.global_variables_initializer()
-            sess.run(init)
-            for i in range(epochs):
-                sess.run(train, feed_dict={self.fileID: train_fileID, self.customerID: train_customerID, self.queryTS: train_queryTS, self.productID: train_productID, self.y:train_y})
-                #if i % 50 == 0:
-                print(i, sess.run(cross_entropy, feed_dict={self.fileID: train_fileID, self.customerID: train_customerID, self.queryTS: train_queryTS, self.productID: train_productID, self.y:train_y}))
-                #print(self.train_data)
-            optimal_W = sess.run(W)
-            optimal_b = sess.run(b)
-            self.saveModel(sess)
+        for i in range(epochs):
+            sess.run(train,
+                     feed_dict={
+                         self.fileID: self.train_fileID,
+                         self.customerID: self.train_customerID,
+                         self.queryTS: self.train_queryTS,
+                         self.productID: self.train_productID,
+                         self.y: self.train_y
+                         }
+                    )
+            #if i % 50 == 0:
+            print(i, sess.run(cross_entropy,
+                              feed_dict={
+                                  self.fileID: self.train_fileID,
+                                  self.customerID: self.train_customerID,
+                                  self.queryTS: self.train_queryTS,
+                                  self.productID: self.train_productID,
+                                  self.y: self.train_y
+                                  }
+                             )
+                 )
+            #print(self.train_data)
+        optimal_W = sess.run(self.W)
+        optimal_b = sess.run(self.b)
 
-    def saveModel(self, sess):
-        tf.train.Saver().save(sess, self.modelFile)
+    def saveModel(self, sess, path):
+        tf.train.Saver().save(sess, path)
 
 #for each in sys.argv:
 #    if '--amount=' in each:
@@ -83,7 +93,12 @@ class ModelNFMD:
 #    elif '--train-loop=' in each:
 #        trainLoop = int(each[13:])
 
+modelFile = './model_saves/Tensorflow/TenLogisticReg.ckpt'
 a = ModelNFMD()
 a.concatFile(amount=2)
-a.train(epochs=10)
+with tf.Session() as sess:
+    init = tf.global_variables_initializer()
+    sess.run(init)
+    a.train(sess, epochs=10)
+    a.saveModel(sess, modelFile)
 
