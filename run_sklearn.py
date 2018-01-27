@@ -9,7 +9,7 @@ from sklearn.externals import joblib
 label_encoder = preprocessing.LabelEncoder()
 logistic_regr = linear_model.LogisticRegression()
 
-pklFile = 'LogisticReg.pkl'
+modelFile = './model_saves/Sklearn/SkLogisticReg.pkl'
 columns = ['FileID', 'CustomerID', 'QueryTS', 'ProductID']
 csvFolder = './data/query_log/'
 csvFiles = [f for f in listdir(csvFolder) if isfile(join(csvFolder, f))]
@@ -17,7 +17,7 @@ amount = 10
 
 for each in sys.argv:
     if '--pkl=' in each:
-        pklFile = each[6:] if os.path.isfile(each[6:]) else pklFile
+        modelFile = each[6:] if os.path.isfile(each[6:]) else modelFile
     elif '--start-file-name=' in each:
         month = int(each[18:])
     elif '--amount=' in each:
@@ -38,27 +38,28 @@ for filename in csvFiles:
         del df
         print(filename + ' down')
     else:
-        print('Training...')
-        _train = pd.read_csv('./data/training-set.csv', names=['FileID', 'VirusRate'])
-        df = pd.merge(_data, _train, how='left', on='FileID')
-
-        # Dummy variable
-        print('Creating dummy variables')
-        encoded_fileID = label_encoder.fit_transform(df['FileID'])
-        encoded_customerID = label_encoder.fit_transform(df['CustomerID'])
-        encoded_productID = label_encoder.fit_transform(df['ProductID'])
-    
-        print('Creating train_X data')
-        train_X = pd.DataFrame([encoded_fileID, encoded_customerID, df['QueryTS'], encoded_productID]).T
- 
-        print('Creating Logistic Regression Instance')
-        logistic_regr = joblib.load(pklFile) if isfile(pklFile) else logistic_regr
-        logistic_regr.fit(train_X, df['VirusRate'])
-        joblib.dump(logistic_regr, pklFile)
-
-        print('Coefficient: ', logistic_regr.coef_)
-        print('Intercept: ', logistic_regr.intercept_)
         break
+
+print('Training...')
+_train = pd.read_csv('./data/training-set.csv', names=['FileID', 'VirusRate'])
+df = pd.merge(_data, _train, how='left', on='FileID')
+
+# Dummy variable
+print('Creating dummy variables')
+encoded_fileID = label_encoder.fit_transform(df['FileID'])
+encoded_customerID = label_encoder.fit_transform(df['CustomerID'])
+encoded_productID = label_encoder.fit_transform(df['ProductID'])
+    
+print('Creating train_X data')
+train_X = pd.DataFrame([encoded_fileID, encoded_customerID, df['QueryTS'], encoded_productID]).T
+ 
+print('Creating Logistic Regression Instance')
+logistic_regr = joblib.load(modelFile) if isfile(modelFile) else logistic_regr
+logistic_regr.fit(train_X, df['VirusRate'])
+joblib.dump(logistic_regr, modelFile)
+
+print('Coefficient: ', logistic_regr.coef_)
+print('Intercept: ', logistic_regr.intercept_)
 
 print('Predicting')
 virusRate_predictions = logistic_regr.predict(train_X)
