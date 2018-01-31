@@ -1,0 +1,2 @@
+model_checkpoint_path: "TenLogisticReg.ckpt"
+all_model_checkpoint_paths: "TenLogisticReg.ckpt"
