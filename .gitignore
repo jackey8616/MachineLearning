@@ -3,5 +3,8 @@ venv
 data
 NFMD
 .ipynb_checkpoints
+ValidationCodes
+TIFF_Inv
+train
 
 *.pkl
