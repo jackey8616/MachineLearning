@@ -19,7 +19,7 @@ class Filer:
                 files.extend(self.getFiles(join(filePath, f)))
         return files
     
-    def concatFiles(self, filesPath, dropDupSet=None):
+    def concatFiles(self, filesPath, dtype=None, dropDupSet=None):
         self.printer.Print('Concating files from path: %s' % filesPath)
         if dropDupSet is not None:
             self.printer.Print('Rows will be droped base on duplicate field check: %s' % str(dropDupSet))
@@ -32,7 +32,7 @@ class Filer:
         _data = pd.DataFrame()
         for filename in files:
             self.printer.Print('- (File %d) %s concating...' %  (count + 1, filename))
-            _read = pd.read_csv(filename, names=colDataNames, dtype={'FileID': str, 'CustomerID': str, 'ProductID': str})
+            _read = pd.read_csv(filename, names=colDataNames, dtype=dtype)
             _data = pd.concat([_data, _read], axis=0)
             if dropDupSet is not None:
                 beforeDropLen = len(_data)

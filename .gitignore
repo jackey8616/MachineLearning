@@ -1,5 +1,7 @@
 __pycache__
 venv
 data
+NFMD
+
 *.pkl
 .ipynb_checkpoints
